@@ -7,6 +7,7 @@ import time
 import pprint
 import configparser
 import requests
+import csv
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -92,11 +93,24 @@ def web_scraping(login_data):
     # pprint.pprint(img_urls)
 
     # ページ遷移ボタン
+    '''
     elem = driver.find_element_by_class_name('lfr-pagination-buttons')
     link_next_page = elem.find_element_by_link_text('次へ')  # 「次へ」のリンクを取得
     link_next_page.click()  # リンクに移動
+    '''
 
     time.sleep(5)
+
+    # CSV書き出し
+    output_file = open('output.csv', 'w', newline='', encoding='shift_jis')
+    output_writer = csv.writer(output_file)
+    output_writer.writerow(['date', 'title'])
+    for i, date in enumerate(dates):
+        output_writer.writerow([date, titles[i]])
+    output_file.close()
+
+
+
 
     driver.quit()
 
