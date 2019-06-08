@@ -8,6 +8,9 @@ import pprint
 import configparser
 import requests
 import csv
+import openpyxl
+from openpyxl.styles.borders import Border, Side
+from openpyxl.chart import Reference
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -109,6 +112,36 @@ def web_scraping(login_data):
         output_writer.writerow([date, titles[i]])
     output_file.close()
 
+    # Excel書き出し
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'diary_data'
+    border = Border(top=Side(style='thin', color='000000'),
+                    bottom=Side(style='thin', color='000000'),
+                    left=Side(style='thin', color='000000'),
+                    right=Side(style='thin', color='000000'))
+
+    for i, item in enumerate(['date', 'title'], 1):  # indexは1オリジン
+        cell_coordinate = ws.cell(row=1, column=i).coordinate
+        ws[cell_coordinate].value = item
+        ws[cell_coordinate].border = border
+
+    for i, date in enumerate(dates):
+        cell_coordinate = ws.cell(row=2+i, column=1).coordinate
+        ws[cell_coordinate].value = date
+        ws[cell_coordinate].border = border
+        cell_coordinate = ws.cell(row=2+i, column=2).coordinate
+        ws[cell_coordinate].value = titles[i]
+        ws[cell_coordinate].border = border
+
+    # 幅指定
+    cell_column = ws.cell(row=1, column=2).column
+    ws.column_dimensions[cell_column].width = 50
+
+
+    wb.save('output.xlsx')
+
+
 
 
 
@@ -120,5 +153,41 @@ if __name__ == '__main__':
     LOGIN_DATA = get_login_data()
     pprint.pprint(LOGIN_DATA)
 
-    web_scraping(LOGIN_DATA)
+    # web_scraping(LOGIN_DATA)
+
+    # '''
+    # Excel書き出し
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'diary_data'
+    for i, item in enumerate(['date', 'title', 'article_length'], 1):  # indexは1オリジン
+        cell_coordinate = ws.cell(row=1, column=i).coordinate
+        ws[cell_coordinate].value = item
+
+    for i in range(0, 5):
+        cell_coordinate = ws.cell(row=2+i, column=1).coordinate
+        ws[cell_coordinate].value = i+11
+        cell_coordinate = ws.cell(row=2+i, column=2).coordinate
+        ws[cell_coordinate].value = 'aaaa'
+        cell_coordinate = ws.cell(row=2+i, column=3).coordinate
+        ws[cell_coordinate].value = 100 + i*5
+        
+
+    # 幅指定
+    cell_column = ws.cell(row=1, column=2).column
+    ws.column_dimensions[cell_column].width = 50
+
+    # グラフ
+    ref_obj = openpyxl.chart.Reference(ws, min_row=2, min_col=3, max_row=2+4, max_col=3)
+    series_obj = openpyxl.chart.Series(ref_obj, title='test graph')
+    chart_obj = openpyxl.chart.BarChart()
+    # chart_obj.style = 11  # スタイル(なんかかっこいい)
+    chart_obj.type = 'bar'  # 横軸
+    chart_obj.append(series_obj)
+    dates = Reference(ws, min_row=2, min_col=1, max_row=6)  # 軸に使う範囲指定
+    chart_obj.set_categories(dates)  # 軸の範囲に指定
+    ws.add_chart(chart_obj, 'D2')  # 表示位置指定
+
+    wb.save('output.xlsx')
+    # '''
 
