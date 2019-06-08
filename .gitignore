@@ -1,0 +1,5 @@
+.vscode
+*.cfg
+*.txt
+*.DS_Store
+bak
