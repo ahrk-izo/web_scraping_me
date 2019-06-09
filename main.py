@@ -156,8 +156,8 @@ def web_scraping(login_data):
     chart_obj = openpyxl.chart.BarChart()
     chart_obj.style = 11  # スタイル(なんかかっこいい)
     chart_obj.type = 'bar'  # 横軸
-    chart_obj.width = 300  # サイズ
-    chart_obj.height = 500  # サイズ
+    chart_obj.width = 18  # サイズ # default is 15
+    chart_obj.height = 15  # サイズ # default is 7.5
     chart_obj.append(series_obj)
     dates = Reference(ws, min_row=2, min_col=1, max_row=len(dates)+1)  # 軸に使う範囲指定
     chart_obj.set_categories(dates)  # 軸の範囲に指定
@@ -175,4 +175,5 @@ if __name__ == '__main__':
     pprint.pprint(LOGIN_DATA)
 
     web_scraping(LOGIN_DATA)
+
 
