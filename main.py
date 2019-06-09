@@ -72,44 +72,50 @@ def web_scraping(login_data):
         driver.quit()
         return
 
-    # タイトル取得
-    elems = driver.find_elements_by_class_name('header-title')
-    titles = [elem.text for elem in elems]
-    pprint.pprint(titles)
+    dates = []
+    titles = []
+    article_length_list = []
+    for _ in range(5):
+        # タイトル取得
+        elems = driver.find_elements_by_class_name('header-title')
+        _titles = [elem.text for elem in elems]
+        titles.extend(_titles)
 
-    # 日付取得
-    elems = driver.find_elements_by_class_name('metadata-publish-date')
-    dates = [elem.text for elem in elems]
+        # 日付取得
+        elems = driver.find_elements_by_class_name('metadata-publish-date')
+        _dates = [elem.text for elem in elems]
+        dates.extend(_dates)
+
+        # 記事
+        elems = driver.find_elements_by_class_name('asset-content')
+        elems = [elem.find_element_by_class_name('journal-content-article') for elem in elems]
+        articles = [elem.text for elem in elems]
+        # pprint.pprint(articles)
+        _article_length_list = [len(article) for article in articles]
+        article_length_list.extend(_article_length_list)
+
+        # 画像
+        # TODO: 画像の取得ができない
+        # img_urls = [elem.find_element_by_tag_name('img').get_attribute('src') for elem in elems]
+        # pprint.pprint(img_urls)
+
+        # ページ遷移ボタン
+        elem = driver.find_element_by_class_name('lfr-pagination-buttons')
+        link_next_page = elem.find_element_by_link_text('次へ')  # 「次へ」のリンクを取得
+        link_next_page.click()  # リンクに移動
+
     pprint.pprint(dates)
-
-    # 記事
-    elems = driver.find_elements_by_class_name('asset-content')
-        
-    elems = [elem.find_element_by_class_name('journal-content-article') for elem in elems]
-    articles = [elem.text for elem in elems]
-    # pprint.pprint(articles)
-    # print(articles[0])
-
-    # 画像
-    # TODO: 画像の取得ができない
-    # img_urls = [elem.find_element_by_tag_name('img').get_attribute('src') for elem in elems]
-    # pprint.pprint(img_urls)
-
-    # ページ遷移ボタン
-    '''
-    elem = driver.find_element_by_class_name('lfr-pagination-buttons')
-    link_next_page = elem.find_element_by_link_text('次へ')  # 「次へ」のリンクを取得
-    link_next_page.click()  # リンクに移動
-    '''
+    pprint.pprint(titles)
+    pprint.pprint(article_length_list)
 
     time.sleep(5)
 
     # CSV書き出し
     output_file = open('output.csv', 'w', newline='', encoding='shift_jis')
     output_writer = csv.writer(output_file)
-    output_writer.writerow(['date', 'title'])
+    output_writer.writerow(['date', 'title', 'article_length'])
     for i, date in enumerate(dates):
-        output_writer.writerow([date, titles[i]])
+        output_writer.writerow([date, titles[i], article_length_list[i]])
     output_file.close()
 
     # Excel書き出し
@@ -121,11 +127,13 @@ def web_scraping(login_data):
                     left=Side(style='thin', color='000000'),
                     right=Side(style='thin', color='000000'))
 
-    for i, item in enumerate(['date', 'title'], 1):  # indexは1オリジン
+    # 項目名
+    for i, item in enumerate(['date', 'title', 'article_length'], 1):  # indexは1オリジン
         cell_coordinate = ws.cell(row=1, column=i).coordinate
         ws[cell_coordinate].value = item
         ws[cell_coordinate].border = border
 
+    # 各データ
     for i, date in enumerate(dates):
         cell_coordinate = ws.cell(row=2+i, column=1).coordinate
         ws[cell_coordinate].value = date
@@ -133,16 +141,29 @@ def web_scraping(login_data):
         cell_coordinate = ws.cell(row=2+i, column=2).coordinate
         ws[cell_coordinate].value = titles[i]
         ws[cell_coordinate].border = border
+        cell_coordinate = ws.cell(row=2+i, column=3).coordinate
+        ws[cell_coordinate].value = article_length_list[i]
+        ws[cell_coordinate].border = border
 
     # 幅指定
     cell_column = ws.cell(row=1, column=2).column
     ws.column_dimensions[cell_column].width = 50
+    ws.column_dimensions['C'].width = 15  # これでもよい
 
+    # グラフ
+    ref_obj = openpyxl.chart.Reference(ws, min_row=2, min_col=3, max_row=len(dates)+1, max_col=3)
+    series_obj = openpyxl.chart.Series(ref_obj, title='article_length')
+    chart_obj = openpyxl.chart.BarChart()
+    chart_obj.style = 11  # スタイル(なんかかっこいい)
+    chart_obj.type = 'bar'  # 横軸
+    chart_obj.width = 300  # サイズ
+    chart_obj.height = 500  # サイズ
+    chart_obj.append(series_obj)
+    dates = Reference(ws, min_row=2, min_col=1, max_row=len(dates)+1)  # 軸に使う範囲指定
+    chart_obj.set_categories(dates)  # 軸の範囲に指定
+    ws.add_chart(chart_obj, 'E2')  # 表示位置指定
 
-    wb.save('output.xlsx')
-
-
-
+    wb.save('output.xlsx')  # 保存
 
 
     driver.quit()
@@ -153,41 +174,5 @@ if __name__ == '__main__':
     LOGIN_DATA = get_login_data()
     pprint.pprint(LOGIN_DATA)
 
-    # web_scraping(LOGIN_DATA)
-
-    # '''
-    # Excel書き出し
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = 'diary_data'
-    for i, item in enumerate(['date', 'title', 'article_length'], 1):  # indexは1オリジン
-        cell_coordinate = ws.cell(row=1, column=i).coordinate
-        ws[cell_coordinate].value = item
-
-    for i in range(0, 5):
-        cell_coordinate = ws.cell(row=2+i, column=1).coordinate
-        ws[cell_coordinate].value = i+11
-        cell_coordinate = ws.cell(row=2+i, column=2).coordinate
-        ws[cell_coordinate].value = 'aaaa'
-        cell_coordinate = ws.cell(row=2+i, column=3).coordinate
-        ws[cell_coordinate].value = 100 + i*5
-        
-
-    # 幅指定
-    cell_column = ws.cell(row=1, column=2).column
-    ws.column_dimensions[cell_column].width = 50
-
-    # グラフ
-    ref_obj = openpyxl.chart.Reference(ws, min_row=2, min_col=3, max_row=2+4, max_col=3)
-    series_obj = openpyxl.chart.Series(ref_obj, title='test graph')
-    chart_obj = openpyxl.chart.BarChart()
-    # chart_obj.style = 11  # スタイル(なんかかっこいい)
-    chart_obj.type = 'bar'  # 横軸
-    chart_obj.append(series_obj)
-    dates = Reference(ws, min_row=2, min_col=1, max_row=6)  # 軸に使う範囲指定
-    chart_obj.set_categories(dates)  # 軸の範囲に指定
-    ws.add_chart(chart_obj, 'D2')  # 表示位置指定
-
-    wb.save('output.xlsx')
-    # '''
+    web_scraping(LOGIN_DATA)
 
