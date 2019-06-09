@@ -36,6 +36,65 @@ def get_login_data():
     return login_data
 
 
+def output_csv_file(dates, titles, article_length_list):
+    'Output CSV File'
+    output_file = open('output.csv', 'w', newline='', encoding='shift_jis')
+    output_writer = csv.writer(output_file)
+    output_writer.writerow(['date', 'title', 'article_length'])
+    for i, date in enumerate(dates):
+        output_writer.writerow([date, titles[i], article_length_list[i]])
+    output_file.close()
+
+
+def output_excel_file(dates, titles, article_length_list):
+    'Output Excel File'
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'diary_data'
+    border = Border(top=Side(style='thin', color='000000'),
+                    bottom=Side(style='thin', color='000000'),
+                    left=Side(style='thin', color='000000'),
+                    right=Side(style='thin', color='000000'))
+
+    # 項目名
+    for i, item in enumerate(['date', 'title', 'article_length'], 1):  # indexは1オリジン
+        cell_coordinate = ws.cell(row=1, column=i).coordinate
+        ws[cell_coordinate].value = item
+        ws[cell_coordinate].border = border
+
+    # 各データ
+    for i, date in enumerate(dates):
+        cell_coordinate = ws.cell(row=2+i, column=1).coordinate
+        ws[cell_coordinate].value = date
+        ws[cell_coordinate].border = border
+        cell_coordinate = ws.cell(row=2+i, column=2).coordinate
+        ws[cell_coordinate].value = titles[i]
+        ws[cell_coordinate].border = border
+        cell_coordinate = ws.cell(row=2+i, column=3).coordinate
+        ws[cell_coordinate].value = article_length_list[i]
+        ws[cell_coordinate].border = border
+
+    # 幅指定
+    cell_column = ws.cell(row=1, column=2).column
+    ws.column_dimensions[cell_column].width = 50
+    ws.column_dimensions['C'].width = 15  # これでもよい
+
+    # グラフ
+    ref_obj = openpyxl.chart.Reference(ws, min_row=2, min_col=3, max_row=len(dates)+1, max_col=3)
+    series_obj = openpyxl.chart.Series(ref_obj, title='article_length')
+    chart_obj = openpyxl.chart.BarChart()
+    chart_obj.style = 11  # スタイル(なんかかっこいい)
+    chart_obj.type = 'bar'  # 横軸
+    chart_obj.width = 18  # サイズ # default is 15
+    chart_obj.height = 15  # サイズ # default is 7.5
+    chart_obj.append(series_obj)
+    dates = Reference(ws, min_row=2, min_col=1, max_row=len(dates)+1)  # 軸に使う範囲指定
+    chart_obj.set_categories(dates)  # 軸の範囲に指定
+    ws.add_chart(chart_obj, 'E2')  # 表示位置指定
+
+    wb.save('output.xlsx')  # 保存
+
+
 def web_scraping(login_data):
     'Seleniumでサイトにアクセスし、データを抽出する'
 
@@ -104,76 +163,22 @@ def web_scraping(login_data):
         link_next_page = elem.find_element_by_link_text('次へ')  # 「次へ」のリンクを取得
         link_next_page.click()  # リンクに移動
 
-    pprint.pprint(dates)
-    pprint.pprint(titles)
-    pprint.pprint(article_length_list)
-
+    # pprint.pprint(dates)
+    # pprint.pprint(titles)
+    # pprint.pprint(article_length_list)
     time.sleep(5)
 
     # CSV書き出し
-    output_file = open('output.csv', 'w', newline='', encoding='shift_jis')
-    output_writer = csv.writer(output_file)
-    output_writer.writerow(['date', 'title', 'article_length'])
-    for i, date in enumerate(dates):
-        output_writer.writerow([date, titles[i], article_length_list[i]])
-    output_file.close()
+    output_csv_file(dates, titles, article_length_list)
 
     # Excel書き出し
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = 'diary_data'
-    border = Border(top=Side(style='thin', color='000000'),
-                    bottom=Side(style='thin', color='000000'),
-                    left=Side(style='thin', color='000000'),
-                    right=Side(style='thin', color='000000'))
-
-    # 項目名
-    for i, item in enumerate(['date', 'title', 'article_length'], 1):  # indexは1オリジン
-        cell_coordinate = ws.cell(row=1, column=i).coordinate
-        ws[cell_coordinate].value = item
-        ws[cell_coordinate].border = border
-
-    # 各データ
-    for i, date in enumerate(dates):
-        cell_coordinate = ws.cell(row=2+i, column=1).coordinate
-        ws[cell_coordinate].value = date
-        ws[cell_coordinate].border = border
-        cell_coordinate = ws.cell(row=2+i, column=2).coordinate
-        ws[cell_coordinate].value = titles[i]
-        ws[cell_coordinate].border = border
-        cell_coordinate = ws.cell(row=2+i, column=3).coordinate
-        ws[cell_coordinate].value = article_length_list[i]
-        ws[cell_coordinate].border = border
-
-    # 幅指定
-    cell_column = ws.cell(row=1, column=2).column
-    ws.column_dimensions[cell_column].width = 50
-    ws.column_dimensions['C'].width = 15  # これでもよい
-
-    # グラフ
-    ref_obj = openpyxl.chart.Reference(ws, min_row=2, min_col=3, max_row=len(dates)+1, max_col=3)
-    series_obj = openpyxl.chart.Series(ref_obj, title='article_length')
-    chart_obj = openpyxl.chart.BarChart()
-    chart_obj.style = 11  # スタイル(なんかかっこいい)
-    chart_obj.type = 'bar'  # 横軸
-    chart_obj.width = 18  # サイズ # default is 15
-    chart_obj.height = 15  # サイズ # default is 7.5
-    chart_obj.append(series_obj)
-    dates = Reference(ws, min_row=2, min_col=1, max_row=len(dates)+1)  # 軸に使う範囲指定
-    chart_obj.set_categories(dates)  # 軸の範囲に指定
-    ws.add_chart(chart_obj, 'E2')  # 表示位置指定
-
-    wb.save('output.xlsx')  # 保存
-
+    output_excel_file(dates, titles, article_length_list)
 
     driver.quit()
 
 
 if __name__ == '__main__':
-
+    'main'
     LOGIN_DATA = get_login_data()
-    pprint.pprint(LOGIN_DATA)
-
+    # pprint.pprint(LOGIN_DATA)
     web_scraping(LOGIN_DATA)
-
-
