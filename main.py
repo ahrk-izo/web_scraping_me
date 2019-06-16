@@ -8,8 +8,11 @@ import pprint
 import configparser
 import requests
 import csv
+import datetime
 import openpyxl
 from openpyxl.styles.borders import Border, Side
+from openpyxl.styles import Font
+from openpyxl.styles.alignment import Alignment
 from openpyxl.chart import Reference
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -56,31 +59,40 @@ def output_excel_file(dates, titles, article_length_list):
                     left=Side(style='thin', color='000000'),
                     right=Side(style='thin', color='000000'))
 
+    # Title
+    ws['A1'] = '社長ブログのまとめ'
+    ws['A1'].font = Font(name='メイリオ', size=18, color='0000ff', bold=True)
+    ws['C1'] = datetime.datetime.today().strftime('%Y/%m/%d')
+    ws['C1'].alignment = Alignment(horizontal='right')
+
     # 項目名
+    item_row = 2
     for i, item in enumerate(['date', 'title', 'article_length'], 1):  # indexは1オリジン
-        cell_coordinate = ws.cell(row=1, column=i).coordinate
+        cell_coordinate = ws.cell(row=item_row, column=i).coordinate
         ws[cell_coordinate].value = item
         ws[cell_coordinate].border = border
 
     # 各データ
+    data_start_row = item_row + 1
     for i, date in enumerate(dates):
-        cell_coordinate = ws.cell(row=2+i, column=1).coordinate
+        cell_coordinate = ws.cell(row=data_start_row+i, column=1).coordinate
         ws[cell_coordinate].value = date
         ws[cell_coordinate].border = border
-        cell_coordinate = ws.cell(row=2+i, column=2).coordinate
+        cell_coordinate = ws.cell(row=data_start_row+i, column=2).coordinate
         ws[cell_coordinate].value = titles[i]
         ws[cell_coordinate].border = border
-        cell_coordinate = ws.cell(row=2+i, column=3).coordinate
+        cell_coordinate = ws.cell(row=data_start_row+i, column=3).coordinate
         ws[cell_coordinate].value = article_length_list[i]
         ws[cell_coordinate].border = border
 
     # 幅指定
-    cell_column = ws.cell(row=1, column=2).column
-    ws.column_dimensions[cell_column].width = 50
-    ws.column_dimensions['C'].width = 15  # これでもよい
+    # cell_column = ws.cell(row=1, column=2).column
+    # ws.column_dimensions[cell_column].width = 50  # B列のこと(これでもよい)
+    ws.column_dimensions['B'].width = 50  # B列
+    ws.column_dimensions['C'].width = 15  # C列
 
     # グラフ
-    ref_obj = openpyxl.chart.Reference(ws, min_row=2, min_col=3, max_row=len(dates)+1, max_col=3)
+    ref_obj = openpyxl.chart.Reference(ws, min_row=data_start_row, min_col=3, max_row=len(dates)+1, max_col=3)
     series_obj = openpyxl.chart.Series(ref_obj, title='article_length')
     chart_obj = openpyxl.chart.BarChart()
     chart_obj.style = 11  # スタイル(なんかかっこいい)
@@ -88,7 +100,7 @@ def output_excel_file(dates, titles, article_length_list):
     chart_obj.width = 18  # サイズ # default is 15
     chart_obj.height = 15  # サイズ # default is 7.5
     chart_obj.append(series_obj)
-    dates = Reference(ws, min_row=2, min_col=1, max_row=len(dates)+1)  # 軸に使う範囲指定
+    dates = Reference(ws, min_row=data_start_row, min_col=1, max_row=len(dates)+1)  # 軸に使う範囲指定
     chart_obj.set_categories(dates)  # 軸の範囲に指定
     ws.add_chart(chart_obj, 'E2')  # 表示位置指定
 
@@ -98,6 +110,7 @@ def output_excel_file(dates, titles, article_length_list):
 def web_scraping(login_data):
     'Seleniumでサイトにアクセスし、データを抽出する'
 
+    print('Webスクレイピング開始---')
     driver = webdriver.Chrome()
     try:
         driver.get(login_data['url'])
@@ -169,9 +182,11 @@ def web_scraping(login_data):
     time.sleep(5)
 
     # CSV書き出し
+    print('CSVに書き出し---')
     output_csv_file(dates, titles, article_length_list)
 
     # Excel書き出し
+    print('Excelに書き出し---')
     output_excel_file(dates, titles, article_length_list)
 
     driver.quit()
@@ -182,3 +197,21 @@ if __name__ == '__main__':
     LOGIN_DATA = get_login_data()
     # pprint.pprint(LOGIN_DATA)
     web_scraping(LOGIN_DATA)
+
+    '''
+    # Excel書き出し
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'diary_data'
+
+    ws['A1'] = '社長ブログのまとめ'
+    ws['C1'] = datetime.datetime.today().strftime('%Y/%m/%d')
+    ws['A1'].font = Font(name='メイリオ', size=18, color='0000ff', bold=True)
+    ws['C1'].alignment = Alignment(horizontal='right')
+
+    for i, item in enumerate(['date', 'title', 'article_length'], 1):  # indexは1オリジン
+        cell_coordinate = ws.cell(row=2, column=i).coordinate
+        ws[cell_coordinate].value = item
+
+    wb.save('output.xlsx')
+    '''
