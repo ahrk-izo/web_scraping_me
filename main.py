@@ -117,6 +117,8 @@ def web_scraping(login_data):
         WebDriverWait(driver, 30).until(
             EC.presence_of_all_elements_located((By.ID, "top"))
         )
+        # TODO window size を変更すると、「次へ」ボタンのクリックに失敗する
+        # driver.set_window_size(900, 1000)  # width, height
     except:
         driver.quit()
         return
