@@ -60,7 +60,7 @@ def output_excel_file(dates, titles, article_length_list):
                     right=Side(style='thin', color='000000'))
 
     # Title
-    ws['A1'] = '社長ブログのまとめ'
+    ws['A1'] = 'ブログ記事のまとめ'
     ws['A1'].font = Font(name='メイリオ', size=18, color='0000ff', bold=True)
     ws['C1'] = datetime.datetime.today().strftime('%Y/%m/%d')
     ws['C1'].alignment = Alignment(horizontal='right')
@@ -204,7 +204,7 @@ if __name__ == '__main__':
     ws = wb.active
     ws.title = 'diary_data'
 
-    ws['A1'] = '社長ブログのまとめ'
+    ws['A1'] = 'ブログ記事のまとめ'
     ws['C1'] = datetime.datetime.today().strftime('%Y/%m/%d')
     ws['A1'].font = Font(name='メイリオ', size=18, color='0000ff', bold=True)
     ws['C1'].alignment = Alignment(horizontal='right')
